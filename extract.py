@@ -188,11 +188,22 @@ def check_duration_match(source_path, target_path, threshold_sec=10):
 def extract_mp3(mp4_path):
     """使用 FFmpeg 提取 MP3，带时长校验和深度修复逻辑"""
     mp3_path = str(Path(mp4_path).with_suffix('.mp3'))
-    
+
+    # 检查原始MP3文件是否存在
     if os.path.exists(mp3_path):
         meta = get_file_metadata(mp3_path)
         tqdm.write(f"⏭️ MP3 已存在，跳过: {os.path.basename(mp3_path)} ({meta['size']}) [{meta['time']}]")
         return mp3_path
+
+    # 检查是否存在分卷文件（如 file_1.mp3, file_2.mp3）
+    base_name = Path(mp4_path).with_suffix('')
+    split_files = sorted(glob.glob(f"{base_name}_*.mp3"))
+    if split_files:
+        tqdm.write(f"⏭️ 检测到已存在的分卷MP3文件，跳过:")
+        for f in split_files:
+            meta = get_file_metadata(f)
+            tqdm.write(f"   -> {meta['name']} ({meta['size']}) [{meta['time']}]")
+        return "|".join(split_files)
         
     tqdm.write(f"正在进行源文件体检: {os.path.basename(mp4_path)}")
     is_healthy, reason = verify_source_integrity(mp4_path)
