@@ -420,14 +420,13 @@ def process_directory(root_dir, mode="all", workers=1):
     root_path = Path(root_dir)
     
     if mode in ["all", "mp4_to_mp3"]:
-        # 查找所有 MP4
-        # glob recursive search
-        mp4_files = list(root_path.rglob("*.mp4"))
+        # 查找所有 MP4 和 MKV
+        video_files = list(root_path.rglob("*.mp4")) + list(root_path.rglob("*.mkv"))
         # 过滤掉以 ._ 开头的隐藏文件
-        mp4_files = [f for f in mp4_files if not f.name.startswith("._")]
-        
+        video_files = [f for f in video_files if not f.name.startswith("._")]
+
         results = []
-        pbar_total = tqdm(mp4_files, desc="总任务进度", position=1, leave=True)
+        pbar_total = tqdm(video_files, desc="总任务进度", position=1, leave=True)
         
         # 定义单文件处理逻辑以便并行调用
         def process_single_mp4(mp4):
@@ -471,9 +470,9 @@ def process_directory(root_dir, mode="all", workers=1):
                 pbar_total.update(1)
 
         if workers is None:
-            if len(mp4_files) > 20:
+            if len(video_files) > 20:
                 workers = 4 if mode == "mp4_to_mp3" else 2
-                tqdm.write(f"🚀 检测到待处理文件较多 ({len(mp4_files)}), 已自动开启 {workers} 线程加速")
+                tqdm.write(f"🚀 检测到待处理文件较多 ({len(video_files)}), 已自动开启 {workers} 线程加速")
             else:
                 workers = 1
 
@@ -482,9 +481,9 @@ def process_directory(root_dir, mode="all", workers=1):
             tqdm.write(f"🚀 开启多线程模式: {workers} 个并行任务")
             with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
                 # 提交所有任务并等待
-                results = list(executor.map(process_single_mp4, mp4_files))
+                results = list(executor.map(process_single_mp4, video_files))
         else:
-            for mp4 in mp4_files:
+            for mp4 in video_files:
                 pbar_total.set_description(f"任务: {mp4.name}")
                 res = process_single_mp4(mp4)
                 results.append(res)
